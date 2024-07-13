@@ -5,7 +5,7 @@ from docx import Document
 from docx.shared import Pt
 from docx2pdf import convert
 import os
-import pythoncom
+# import pythoncom
 from django.http import HttpResponse
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from docx.enum.table import WD_ALIGN_VERTICAL
@@ -45,7 +45,7 @@ def generate_pdf(request, gross_salary, fedWithholding, ss, medicare, fica_deduc
     pdf_files = []
 
     # Inicializar COM
-    pythoncom.CoInitialize()
+    # pythoncom.CoInitialize()
 
     temp_docx_paths = []
     temp_pdf_paths = []
@@ -168,7 +168,7 @@ def generate_pdf(request, gross_salary, fedWithholding, ss, medicare, fica_deduc
         for path in temp_docx_paths + temp_pdf_paths + final_pdf_paths:
             if os.path.exists(path):
                 os.remove(path)
-        pythoncom.CoUninitialize()
+        # pythoncom.CoUninitialize()
 
     return response
 
