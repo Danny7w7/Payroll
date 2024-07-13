@@ -1,0 +1,24 @@
+# Ignorar archivos compilados de Python
+__pycache__/
+
+# Ignorar directorio virtual
+venv/
+
+# Ignorar archivos compilados (.pyc)
+*.py[cod]
+*$py.class
+
+# Ignorar variables de entorno locales
+.env
+
+# Ignorar archivos estáticos (imágenes, CSS, JavaScript)
+media/
+
+# Ignorar archivos de migración
+migrations/*
+
+# No ignorar la carpeta migrations ni el archivo __init__.py
+!migrations/
+!migrations/__init__.py
+
+db.sqlite3

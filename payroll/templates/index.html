@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <title>PayRoll</title>
+        <!-- Required meta tags -->
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+        <!-- Bootstrap CSS v5.2.1 -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous" />
+    </head>
+
+    <body>
+        <header>
+            <!-- place navbar here -->
+        </header>
+        <main class="container-fluid">
+            <form method="post" class="row">
+                <div class="mb-3 col-3">
+                    <label class="form-label">Anual</label>
+                    <input type="text" class="form-control" name="anual" id="anual" aria-describedby="helpId"/>
+                </div>
+                <div class="mb-3 col-3">
+                    <label class="form-label">Period</label>
+                    <select class="form-select form-select" name="period" id="period">
+                        <option selected disabled>Select one</option>
+                        <option value=26>Bi-Weekly</option>
+                        <option value=52>Weelky</option>
+                    </select>
+                </div>
+                <div class="mb-3 col-3">
+                    <label class="form-label">Name</label>
+                    <input type="text" class="form-control" name="name" id="name" aria-describedby="helpId"/>
+                </div>
+                <div class="mb-3 col-3">
+                    <label class="form-label">Last name</label>
+                    <input type="text" class="form-control" name="last_name" id="last_name" aria-describedby="helpId"/>
+                </div>
+                <div class="mb-3 col-3">
+                    <label class="form-label">Client address</label>
+                    <input type="text" class="form-control" name="client_address" id="client_address" aria-describedby="helpId"/>
+                </div>
+                <div class="mb-3 col-3">
+                    <label class="form-label">City and State</label>
+                    <input type="text" class="form-control" name="city_state" id="city_state" aria-describedby="helpId"/>
+                </div>
+                <div class="mb-3 col-3">
+                    <label class="form-label">Company</label>
+                    <input type="text" class="form-control" name="company" id="company" aria-describedby="helpId"/>
+                </div>
+                <div class="mb-3 col-3">
+                    <label class="form-label">address CO</label>
+                    <input type="text" class="form-control" name="address_co" id="address_co" aria-describedby="helpId"/>
+                </div>
+                <div class="mb-3 col-3">
+                    <label class="form-label">Phone</label>
+                    <input type="number" class="form-control" name="phone" id="phone" aria-describedby="helpId"/>
+                </div>
+                <div class="mb-3 col-3">
+                    <label class="form-label">Last 4 SSN digits</label>
+                    <input type="number" class="form-control" name="ssn_digits" id="ssn_digits" aria-describedby="helpId"/>
+                </div>
+                <div class="mb-3 col-3">
+                    <label class="form-label">Number of dependents</label>
+                    <input type="number" class="form-control" name="dependents" id="dependents" aria-describedby="helpId"/>
+                </div>
+                <div class="mb-3 col-3">
+                    <label class="form-label">Monthly salary</label>
+                    <input type="number" class="form-control" name="monthly_salary" id="monthly_salary" aria-describedby="helpId"/>
+                </div>
+                <div class="col-4 mb-3">
+                    <label class="form-label">Check ID</label>
+                    <input type="number" class="form-control" name="check_id" id="monthly_salary" aria-describedby="helpId"/>
+                </div>
+                <div class="col-4 mb-3">
+                    <label class="form-label">Start Date</label>
+                    <input class='form-control' type="date" name="start_period"/>
+                </div>
+                <div class="col-4 mb-3">
+                    <label class="form-label">End Date</label>
+                    <input class='form-control' type="date" name="end_period"/>
+                </div>
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary" >
+                        Button
+                    </button>
+                </div>
+                
+            </form>
+        </main>
+        <footer>
+            <!-- place footer here -->
+        </footer>
+        <!-- Bootstrap JavaScript Libraries -->
+        <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous" ></script>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.min.js" integrity="sha384-BBtl+eGJRgqQAUMxJ7pMwbEyER4l1g+O15P+16Ep7Q9Q+zqX6gSbd85u4mG4QzX+" crossorigin="anonymous" ></script>
+    </body>
+</html>
