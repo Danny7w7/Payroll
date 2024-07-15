@@ -149,7 +149,7 @@ def generate_pdf(request, gross_salary, fedWithholding, ss, medicare, fica_deduc
             temp_pdf_path = os.path.join(output_dir, f'temp_output_{i}.pdf')
             if not os.path.exists(temp_pdf_path):
                 print(f"Error: {temp_pdf_path} no se ha creado.")
-                return HttpResponse("Error durante la conversión a PDF.", status=500)
+                return HttpResponse(f"Error durante la conversión a PDF. {result}", status=500)
 
             # Obtener el nombre del archivo PDF desde los parámetros de la solicitud
             pdf_name = f"{request.POST['name']}{request.POST['last_name']}_{start_period.strftime('%m%d%Y')}_{round_up(gross_salary)}{'BiWeekly' if request.POST['period'] == '26' else 'Weekly' if request.POST['period'] == '52' else ''}.pdf"
