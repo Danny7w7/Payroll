@@ -130,11 +130,11 @@ def generate_pdf(request, gross_salary, fedWithholding, ss, medicare, fica_deduc
             
             # Convertir el documento .docx modificado a PDF usando LibreOffice
             temp_pdf_path = f'temp_output_{i}.pdf'
-            subprocess.run(['libreoffice', '--headless', '--convert-to', 'pdf', '--outdir', os.path.dirname(temp_pdf_path), temp_docx_path])
+            subprocess.run(['libreoffice', '--headless', '--convert-to', 'pdf', '--outdir', temp_pdf_path, temp_docx_path])
             temp_pdf_paths.append(temp_pdf_path)
             
             # Obtener el nombre del archivo PDF desde los parámetros de la solicitud
-            pdf_name = f"{request.POST['name']}{request.POST['last_name']}_{start_period.strftime('%m%d%Y')}_{round_up(gross_salary)}{'BiWeekly' if request.POST['period'] == '26' else 'Weekly' if request.POST['period'] == '52' else ''}_{i}.pdf"
+            pdf_name = f"{request.POST['name']}{request.POST['last_name']}_{start_period.strftime('%m%d%Y')}_{round_up(gross_salary)}{'BiWeekly' if request.POST['period'] == '26' else 'Weekly' if request.POST['period'] == '52' else ''}.pdf"
             
             # Renombrar el archivo PDF
             final_pdf_path = f'{pdf_name}'
