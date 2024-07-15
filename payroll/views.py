@@ -135,8 +135,16 @@ def generate_pdf(request, gross_salary, fedWithholding, ss, medicare, fica_deduc
             doc.save(temp_docx_path)
 
             # Convertir el documento .docx modificado a PDF usando LibreOffice
-            subprocess.run(['libreoffice', '--headless', '--convert-to', 'pdf', '--outdir', output_dir, temp_docx_path])
+            result = subprocess.run(
+                ['libreoffice', '--headless', '--convert-to', 'pdf', '--outdir', output_dir, temp_docx_path],
+                capture_output=True,
+                text=True
+            )
 
+            # Imprimir cualquier error
+            if result.returncode != 0:
+                print(f"Error al convertir a PDF: {result.stderr}")
+                return HttpResponse(f"Error durante la conversión a PDF. {result.stderr}", status=500)
             # Comprobar la existencia del archivo PDF creado
             temp_pdf_path = os.path.join(output_dir, f'temp_output_{i}.pdf')
             if not os.path.exists(temp_pdf_path):
