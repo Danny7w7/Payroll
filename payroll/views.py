@@ -41,7 +41,6 @@ def generate_pdf(request, gross_salary, fedWithholding, ss, medicare, fica_deduc
     number_payments = (end_period - start_period).days // 14
     period = int(request.POST['period'])
     check_id = request.POST['check_id']
-    pdf_files = []
 
     temp_docx_paths = []
     temp_pdf_paths = []
@@ -69,7 +68,7 @@ def generate_pdf(request, gross_salary, fedWithholding, ss, medicare, fica_deduc
                 '<<city_state>>': request.POST['city_state'],
                 '<<address_co>>': request.POST['address_co'],
                 '<<check_id>>': str(check_id),
-                '<<fecha>>': start_period.strftime('%m/%d/%Y'),  # Formatear la fecha a una cadena
+                '<<fecha>>': start_period.strftime('%m/%d/%Y'),
                 '<<pay_date>>': (start_period - datetime.timedelta(days=14)).strftime('%m/%d/%Y'),
                 '<<netpaytext>>': number_to_words(round(gross_salary - fica_deduction)),
                 '<<decimal>>': get_decimal_part(gross_salary - fica_deduction),
@@ -110,7 +109,6 @@ def generate_pdf(request, gross_salary, fedWithholding, ss, medicare, fica_deduc
                         for key, value in replacements.items():
                             if key in cell.text:
                                 cell.text = cell.text.replace(key, value)
-                                # Cambiar tamaño de fuente a 7 puntos
                                 for paragraph in cell.paragraphs:
                                     for run in paragraph.runs:
                                         if key not in no_font_size_changes:
@@ -124,15 +122,15 @@ def generate_pdf(request, gross_salary, fedWithholding, ss, medicare, fica_deduc
                                 cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
 
             # Definir el directorio de salida para los PDFs
-            output_dir = os.path.join('media', 'pdfs')  # Usar 'media/pdfs'
+            output_dir = os.path.join('media', 'pdfs')
 
             # Crear el directorio si no existe
             if not os.path.exists(output_dir):
                 os.makedirs(output_dir)
 
             # Guardar el documento modificado temporalmente
-            temp_docx_path = f'temp_modified_{i}.docx'
             doc.save(temp_docx_path)
+            temp_docx_paths.append(temp_docx_path)  # Agregar a la lista de documentos temporales
 
             # Convertir el documento .docx modificado a PDF usando LibreOffice
             result = subprocess.run(
@@ -141,13 +139,12 @@ def generate_pdf(request, gross_salary, fedWithholding, ss, medicare, fica_deduc
                 text=True
             )
 
-            # Imprimir cualquier error
             if result.returncode != 0:
                 print(f"Error al convertir a PDF: {result.stderr}")
                 return HttpResponse(f"Error durante la conversión a PDF. {result.stderr}", status=500)
 
             # Comprobar el nombre del archivo PDF creado
-            temp_pdf_path = os.path.join(output_dir, f'temp_modified_{i}.pdf')  # Cambiar a temp_modified
+            temp_pdf_path = os.path.join(output_dir, f'temp_modified_{i}.pdf')
             if not os.path.exists(temp_pdf_path):
                 print(f"Error: {temp_pdf_path} no se ha creado.")
                 return HttpResponse(f"Error durante la conversión a PDF.", status=500)
@@ -156,18 +153,16 @@ def generate_pdf(request, gross_salary, fedWithholding, ss, medicare, fica_deduc
             pdf_name = f"{request.POST['name']}{request.POST['last_name']}_{start_period.strftime('%m%d%Y')}_{round_up(gross_salary)}{'BiWeekly' if request.POST['period'] == '26' else 'Weekly' if request.POST['period'] == '52' else ''}.pdf"
 
             # Renombrar el archivo PDF
-            final_pdf_path = os.path.join(output_dir, pdf_name)  # Usa el mismo directorio para el nombre final
+            final_pdf_path = os.path.join(output_dir, pdf_name)
             os.rename(temp_pdf_path, final_pdf_path)
             final_pdf_paths.append(final_pdf_path)
             
-            # Incrementar la fecha de pago para el siguiente ciclo
-            check_id = int(check_id)
-            check_id += 13
+            check_id = int(check_id) + 13
 
         # Crear el archivo ZIP en memoria
         zip_buffer = io.BytesIO()
         with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
-            for pdf_path in pdf_files:
+            for pdf_path in final_pdf_paths:  # Cambiar pdf_files a final_pdf_paths
                 zip_file.write(pdf_path, os.path.basename(pdf_path))
 
         # Preparar la respuesta HTTP con el archivo ZIP
@@ -176,12 +171,12 @@ def generate_pdf(request, gross_salary, fedWithholding, ss, medicare, fica_deduc
         response['Content-Disposition'] = 'attachment; filename="payroll_pdfs.zip"'
         
     finally:
-        # Asegurarse de que los archivos temporales se eliminen si fueron creados
         for path in temp_docx_paths + temp_pdf_paths + final_pdf_paths:
             if os.path.exists(path):
                 os.remove(path)
 
     return response
+
 
 
 
