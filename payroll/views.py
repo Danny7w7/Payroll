@@ -127,22 +127,27 @@ def generate_pdf(request, gross_salary, fedWithholding, ss, medicare, fica_deduc
             temp_docx_path = f'temp_modified_{i}.docx'
             doc.save(temp_docx_path)
             temp_docx_paths.append(temp_docx_path)
-            
+
             # Convertir el documento .docx modificado a PDF usando LibreOffice
-            temp_pdf_path = f'temp_output_{i}.pdf'
-            subprocess.run(['libreoffice', '--headless', '--convert-to', 'pdf', '--outdir', temp_pdf_path, temp_docx_path])
-            temp_pdf_paths.append(temp_pdf_path)
-            
+            output_dir = os.path.dirname(temp_pdf_path)
+            if not os.path.exists(output_dir):
+                os.makedirs(output_dir)
+
+            subprocess.run(['libreoffice', '--headless', '--convert-to', 'pdf', '--outdir', output_dir, temp_docx_path])
+
+            # Asegúrate de que el archivo PDF se haya creado
+            temp_pdf_path = os.path.join(output_dir, f'temp_output_{i}.pdf')
+            if not os.path.exists(temp_pdf_path):
+                print(f"Error: {temp_pdf_path} no se ha creado.")
+                return HttpResponse("Error durante la conversión a PDF.", status=500)
+
             # Obtener el nombre del archivo PDF desde los parámetros de la solicitud
             pdf_name = f"{request.POST['name']}{request.POST['last_name']}_{start_period.strftime('%m%d%Y')}_{round_up(gross_salary)}{'BiWeekly' if request.POST['period'] == '26' else 'Weekly' if request.POST['period'] == '52' else ''}.pdf"
-            
+
             # Renombrar el archivo PDF
-            final_pdf_path = f'{pdf_name}'
+            final_pdf_path = os.path.join(os.getcwd(), pdf_name)  # Usa la ruta completa
             os.rename(temp_pdf_path, final_pdf_path)
             final_pdf_paths.append(final_pdf_path)
-            
-            # Agregar a la lista de archivos PDF para el ZIP
-            pdf_files.append(final_pdf_path)
             
             # Incrementar la fecha de pago para el siguiente ciclo
             check_id = int(check_id)
