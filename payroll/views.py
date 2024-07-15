@@ -3,9 +3,8 @@ from django.views.decorators.csrf import csrf_exempt
 
 from docx import Document
 from docx.shared import Pt
-from docx2pdf import convert
 import os
-# import pythoncom
+import subprocess
 from django.http import HttpResponse
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from docx.enum.table import WD_ALIGN_VERTICAL
@@ -43,9 +42,6 @@ def generate_pdf(request, gross_salary, fedWithholding, ss, medicare, fica_deduc
     period = int(request.POST['period'])
     check_id = request.POST['check_id']
     pdf_files = []
-
-    # Inicializar COM
-    # pythoncom.CoInitialize()
 
     temp_docx_paths = []
     temp_pdf_paths = []
@@ -132,9 +128,9 @@ def generate_pdf(request, gross_salary, fedWithholding, ss, medicare, fica_deduc
             doc.save(temp_docx_path)
             temp_docx_paths.append(temp_docx_path)
             
-            # Convertir el documento .docx modificado a PDF
+            # Convertir el documento .docx modificado a PDF usando LibreOffice
             temp_pdf_path = f'temp_output_{i}.pdf'
-            convert(temp_docx_path, temp_pdf_path)
+            subprocess.run(['libreoffice', '--headless', '--convert-to', 'pdf', '--outdir', os.path.dirname(temp_pdf_path), temp_docx_path])
             temp_pdf_paths.append(temp_pdf_path)
             
             # Obtener el nombre del archivo PDF desde los parámetros de la solicitud
@@ -168,7 +164,6 @@ def generate_pdf(request, gross_salary, fedWithholding, ss, medicare, fica_deduc
         for path in temp_docx_paths + temp_pdf_paths + final_pdf_paths:
             if os.path.exists(path):
                 os.remove(path)
-        # pythoncom.CoUninitialize()
 
     return response
 
