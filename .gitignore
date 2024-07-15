@@ -11,9 +11,6 @@ venv/
 # Ignorar variables de entorno locales
 .env
 
-# Ignorar archivos estáticos (imágenes, CSS, JavaScript)
-media/
-
 # Ignorar archivos de migración
 migrations/*
 

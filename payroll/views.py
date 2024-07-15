@@ -123,19 +123,21 @@ def generate_pdf(request, gross_salary, fedWithholding, ss, medicare, fica_deduc
                                             change_font_size(run, 8)
                                 cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
 
-            # Guardar el documento modificado temporalmente
-            temp_docx_path = f'temp_modified_{i}.docx'
-            doc.save(temp_docx_path)
-            temp_docx_paths.append(temp_docx_path)
+            # Definir el directorio de salida para los PDFs
+            output_dir = os.path.join('media', 'pdfs')  # Usar 'media/pdfs'
 
-            # Convertir el documento .docx modificado a PDF usando LibreOffice
-            output_dir = os.path.dirname(temp_pdf_path)
+            # Crear el directorio si no existe
             if not os.path.exists(output_dir):
                 os.makedirs(output_dir)
 
+            # Guardar el documento modificado temporalmente
+            temp_docx_path = f'temp_modified_{i}.docx'
+            doc.save(temp_docx_path)
+
+            # Convertir el documento .docx modificado a PDF usando LibreOffice
             subprocess.run(['libreoffice', '--headless', '--convert-to', 'pdf', '--outdir', output_dir, temp_docx_path])
 
-            # Asegúrate de que el archivo PDF se haya creado
+            # Comprobar la existencia del archivo PDF creado
             temp_pdf_path = os.path.join(output_dir, f'temp_output_{i}.pdf')
             if not os.path.exists(temp_pdf_path):
                 print(f"Error: {temp_pdf_path} no se ha creado.")
@@ -145,7 +147,7 @@ def generate_pdf(request, gross_salary, fedWithholding, ss, medicare, fica_deduc
             pdf_name = f"{request.POST['name']}{request.POST['last_name']}_{start_period.strftime('%m%d%Y')}_{round_up(gross_salary)}{'BiWeekly' if request.POST['period'] == '26' else 'Weekly' if request.POST['period'] == '52' else ''}.pdf"
 
             # Renombrar el archivo PDF
-            final_pdf_path = os.path.join(os.getcwd(), pdf_name)  # Usa la ruta completa
+            final_pdf_path = os.path.join(output_dir, pdf_name)  # Usa el mismo directorio para el nombre final
             os.rename(temp_pdf_path, final_pdf_path)
             final_pdf_paths.append(final_pdf_path)
             
