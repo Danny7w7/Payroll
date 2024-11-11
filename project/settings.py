@@ -25,8 +25,8 @@ SECRET_KEY = 'django-insecure-eq9r158o-n&%f-sbas&_eidaz^bl3nm=&&ces$9#&5q_c3(k_5
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-CSRF_TRUSTED_ORIGINS = ['https://*']
-ALLOWED_HOSTS = ['*']
+CSRF_TRUSTED_ORIGINS = ['https://payroll.lapeira.com']
+ALLOWED_HOSTS = ['payroll.lapeira.com']
 
 
 # Application definition

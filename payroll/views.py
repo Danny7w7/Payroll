@@ -21,9 +21,10 @@ from PyPDF2 import PdfReader, PdfWriter
 @csrf_exempt
 def index(request):
     if request.method == 'POST':
-        gross_salary, fedWithholding, ss, medicare, fica_deduction = payroll_calculator(int(request.POST['anual']), int(request.POST['period']))
+        # gross_salary, fedWithholding, ss, medicare, fica_deduction = payroll_calculator(int(request.POST['anual']), int(request.POST['period']))
+        # return generate_pdf(request, gross_salary, fedWithholding, ss, medicare, fica_deduction)
 
-        return generate_pdf(request, gross_salary, fedWithholding, ss, medicare, fica_deduction)
+        return generate_2do_pdf(request)
     return render(request, 'index.html')
 
 def payroll_calculator(anual, period):
@@ -186,9 +187,15 @@ def get_tax_rate(income):
         (10276, 41775, 0.12),
         (41776, 89075, 0.22),
         (89076, 170050, 0.24),
-        (170051, 215950, 0.32),
+        (170051, 215950, 0.32), 
         (215951, 539900, 0.35),
         (539901, float('inf'), 0.37)
+    ]
+    tax_brackets = [
+        (4, 11, 12, 13, 5),
+        (5, 14, 15, 6),
+        (6, 16, 17, 18, 7),
+        (7, 19, 20,21),
     ]
     
     for lower, upper, rate in tax_brackets:
@@ -264,3 +271,98 @@ def get_pay_date_correct(pay_date):
         mult = rounded * 14
         date_object = start_date + datetime.timedelta(days=mult)
         return date_object
+
+
+def generate_2do_pdf(request):
+
+    temp_docx_paths = []
+    temp_pdf_paths = []
+    final_pdf_paths = []
+
+    try:
+
+        temp_docx_path = f'temp_modified.docx'
+        temp_pdf_path = f'temp_output.pdf'
+        
+        # Cargar el archivo .docx base
+        doc = Document('base.docx')
+        
+        # Modificar el archivo .docx (por ejemplo, agregar un nombre)
+        replacements = {
+            '<<nombre>>': f"{request.POST['name']} {request.POST['last_name']}",
+            '<<client_address>>': request.POST['client_address'],
+            '<<company>>': request.POST['company'],
+            '<<city_state>>': request.POST['city_state'],
+            '<<address_co>>': request.POST['address_co'],
+        }
+
+        # Modificar los párrafos
+        for paragraph in doc.paragraphs:
+            for key, value in replacements.items():
+                if key in paragraph.text:
+                    paragraph.text = paragraph.text.replace(key, value)
+
+        # Modificar las tablas
+        for table in doc.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    for key, value in replacements.items():
+                        if key in cell.text:
+                            cell.text = cell.text.replace(key, value)
+                            cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
+
+        # Definir el directorio de salida para los PDFs
+        output_dir = os.path.join('media', 'pdfs')
+
+        # Crear el directorio si no existe
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+
+        # Guardar el documento modificado temporalmente
+        doc.save(temp_docx_path)
+        temp_docx_paths.append(temp_docx_path)  # Agregar a la lista de documentos temporales
+
+        # Convertir el documento .docx modificado a PDF usando LibreOffice
+        result = subprocess.run(
+            ['libreoffice', '--headless', '--convert-to', 'pdf', '--outdir', output_dir, temp_docx_path],
+            capture_output=True,
+            text=True
+        )
+
+        if result.returncode != 0:
+            print(f"Error al convertir a PDF: {result.stderr}")
+            return HttpResponse(f"Error durante la conversión a PDF. {result.stderr}", status=500)
+
+        # Comprobar el nombre del archivo PDF creado
+        temp_pdf_path = os.path.join(output_dir, f'temp_modified_{i}.pdf')
+        if not os.path.exists(temp_pdf_path):
+            print(f"Error: {temp_pdf_path} no se ha creado.")
+            return HttpResponse(f"Error durante la conversión a PDF.", status=500)
+
+        # Obtener el nombre del archivo PDF desde los parámetros de la solicitud
+        pdf_name = f"uwu.pdf"
+
+        # Renombrar el archivo PDF
+        final_pdf_path = os.path.join(output_dir, pdf_name)
+        os.rename(temp_pdf_path, final_pdf_path)
+        final_pdf_paths.append(final_pdf_path)
+        
+        check_id = int(check_id) + 13
+
+        # Crear el archivo ZIP en memoria
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
+            for pdf_path in final_pdf_paths:  # Cambiar pdf_files a final_pdf_paths
+                zip_file.write(pdf_path, os.path.basename(pdf_path))
+
+        # Preparar la respuesta HTTP con el archivo ZIP
+        zip_buffer.seek(0)
+        response = HttpResponse(zip_buffer, content_type='application/zip')
+        response['Content-Disposition'] = 'attachment; filename="payroll_pdfs.zip"'
+        
+    finally:
+        for path in temp_docx_paths + temp_pdf_paths + final_pdf_paths:
+            if os.path.exists(path):
+                os.remove(path)
+
+    return response
