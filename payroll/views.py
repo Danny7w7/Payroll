@@ -191,12 +191,6 @@ def get_tax_rate(income):
         (215951, 539900, 0.35),
         (539901, float('inf'), 0.37)
     ]
-    tax_brackets = [
-        (4, 11, 12, 13, 5),
-        (5, 14, 15, 6),
-        (6, 16, 17, 18, 7),
-        (7, 19, 20,21),
-    ]
     
     for lower, upper, rate in tax_brackets:
         if lower <= income <= upper:
