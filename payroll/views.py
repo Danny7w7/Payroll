@@ -21,10 +21,10 @@ from PyPDF2 import PdfReader, PdfWriter
 @csrf_exempt
 def index(request):
     if request.method == 'POST':
-        # gross_salary, fedWithholding, ss, medicare, fica_deduction = payroll_calculator(int(request.POST['anual']), int(request.POST['period']))
+        gross_salary, fedWithholding, ss, medicare, fica_deduction = payroll_calculator(int(request.POST['anual']), int(request.POST['period']))
         # return generate_pdf(request, gross_salary, fedWithholding, ss, medicare, fica_deduction)
 
-        return generate_2do_pdf(request)
+        return generate_2do_pdf(request, gross_salary, fedWithholding, ss, medicare, fica_deduction)
     return render(request, 'index.html')
 
 def payroll_calculator(anual, period):
@@ -273,11 +273,13 @@ def get_pay_date_correct(pay_date):
         return date_object
 
 
-def generate_2do_pdf(request):
+def generate_2do_pdf(request, gross_salary, fedWithholding, ss, medicare, fica_deduction):
     start_date = datetime.datetime(2023, 12, 21)
     start_period = get_pay_date_correct(datetime.datetime.strptime(request.POST['start_period'], '%Y-%m-%d'))
     end_period = get_pay_date_correct(datetime.datetime.strptime(request.POST['end_period'], '%Y-%m-%d'))
     number_payments = (end_period - start_period).days // 14
+    period = int(request.POST['period'])
+    check_id = request.POST['check_id']
 
     temp_docx_paths = []
     temp_pdf_paths = []
@@ -301,6 +303,25 @@ def generate_2do_pdf(request):
                 '<<company>>': request.POST['company'],
                 '<<city_state>>': request.POST['city_state'],
                 '<<address_co>>': request.POST['address_co'],
+                '<<check_id>>': str(check_id),
+                '<<fecha>>': start_period.strftime('%m/%d/%Y'),
+                '<<pay_date>>': (start_period - datetime.timedelta(days=14)).strftime('%m/%d/%Y'),
+                '<<netpaytext>>': number_to_words(round(gross_salary - fica_deduction)),
+                '<<decimal>>': get_decimal_part(gross_salary - fica_deduction),
+                '<<ssn_digits>>': request.POST['ssn_digits'],
+                '<<netpay>>': format_number(round_up(gross_salary - fica_deduction)),
+                '<<dependents>>': request.POST['dependents'],
+                '<<salary>>': str(format_number(gross_salary)),
+                '<<fed>>': str(format_number(fedWithholding)),
+                '<<ss>>': str(format_number(ss)),
+                '<<mc>>': str(format_number(medicare)),
+                '<<totalt>>': str(format_number(round_up(fedWithholding + ss + medicare))),
+                # Years to Date
+                '<<salaryytd>>': str(format_number(round_up(gross_salary * payment_number))),
+                '<<fedytd>>': str(format_number(round_up(fedWithholding * payment_number))),
+                '<<ssytd>>': str(format_number(round_up(ss * payment_number))),
+                '<<mcytd>>': str(format_number(round_up(medicare * payment_number))),
+                '<<totaltytd>>': str(format_number(round_up((fedWithholding + ss + medicare) * payment_number))),
             }
 
             # Modificar los párrafos
