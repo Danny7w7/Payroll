@@ -322,6 +322,14 @@ def generate_2do_pdf(request, gross_salary, fedWithholding, ss, medicare, fica_d
                 '<<totaltytd>>': str(format_number(round_up((fedWithholding + ss + medicare) * payment_number))),
             }
 
+            def change_font_size(run, size):
+                run.font.size = Pt(size)
+
+            def justify_paragraph(paragraph, alignment):
+                paragraph.alignment = alignment
+
+            no_font_size_changes = ['<<nombre>>', '<<fecha>>', '<<netpay>>', '<<dependents>>', '<<pay_date>>']
+
             # Modificar los párrafos
             for paragraph in doc.paragraphs:
                 for key, value in replacements.items():
@@ -335,6 +343,16 @@ def generate_2do_pdf(request, gross_salary, fedWithholding, ss, medicare, fica_d
                         for key, value in replacements.items():
                             if key in cell.text:
                                 cell.text = cell.text.replace(key, value)
+                                for paragraph in cell.paragraphs:
+                                    for run in paragraph.runs:
+                                        if key not in no_font_size_changes:
+                                            change_font_size(run, 7)
+                                            justify_paragraph(paragraph, WD_PARAGRAPH_ALIGNMENT.RIGHT)
+                                        elif key == '<<netpay>>':
+                                            change_font_size(run, 9)
+                                            run.bold = True
+                                        else:
+                                            change_font_size(run, 8)
                                 cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
 
             # Definir el directorio de salida para los PDFs
