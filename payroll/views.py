@@ -283,7 +283,11 @@ def generate_2do_pdf(request, gross_salary, fedWithholding, ss, medicare, fica_d
         # LOOP para generar múltiples PDFs
         for i in range(number_payments):
             start_period += datetime.timedelta(days=14)
-            
+            if period == 26:
+                payment_number = (start_period - start_date).days // 14
+            else:
+                payment_number = (start_period - start_date).days // 7
+
             temp_docx_path = f'temp_modified_{i}.docx'
             temp_pdf_path = f'temp_output_{i}.pdf'
             
