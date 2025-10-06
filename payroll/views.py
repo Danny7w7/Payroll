@@ -274,85 +274,90 @@ def get_pay_date_correct(pay_date):
 
 
 def generate_2do_pdf(request):
+    start_date = datetime.datetime(2023, 12, 21)
+    start_period = get_pay_date_correct(datetime.datetime.strptime(request.POST['start_period'], '%Y-%m-%d'))
+    end_period = get_pay_date_correct(datetime.datetime.strptime(request.POST['end_period'], '%Y-%m-%d'))
+    number_payments = (end_period - start_period).days // 14
 
     temp_docx_paths = []
     temp_pdf_paths = []
     final_pdf_paths = []
 
     try:
+        # LOOP para generar múltiples PDFs
+        for i in range(number_payments):
+            start_period += datetime.timedelta(days=14)
+            
+            temp_docx_path = f'temp_modified_{i}.docx'
+            temp_pdf_path = f'temp_output_{i}.pdf'
+            
+            # Cargar el archivo .docx base
+            doc = Document('base.docx')
+            
+            # Modificar el archivo .docx
+            replacements = {
+                '<<nombre>>': f"{request.POST['name']} {request.POST['last_name']}",
+                '<<client_address>>': request.POST['client_address'],
+                '<<company>>': request.POST['company'],
+                '<<city_state>>': request.POST['city_state'],
+                '<<address_co>>': request.POST['address_co'],
+            }
 
-        temp_docx_path = f'temp_modified.docx'
-        temp_pdf_path = f'temp_output.pdf'
-        
-        # Cargar el archivo .docx base
-        doc = Document('base.docx')
-        
-        # Modificar el archivo .docx (por ejemplo, agregar un nombre)
-        replacements = {
-            '<<nombre>>': f"{request.POST['name']} {request.POST['last_name']}",
-            '<<client_address>>': request.POST['client_address'],
-            '<<company>>': request.POST['company'],
-            '<<city_state>>': request.POST['city_state'],
-            '<<address_co>>': request.POST['address_co'],
-        }
+            # Modificar los párrafos
+            for paragraph in doc.paragraphs:
+                for key, value in replacements.items():
+                    if key in paragraph.text:
+                        paragraph.text = paragraph.text.replace(key, value)
 
-        # Modificar los párrafos
-        for paragraph in doc.paragraphs:
-            for key, value in replacements.items():
-                if key in paragraph.text:
-                    paragraph.text = paragraph.text.replace(key, value)
+            # Modificar las tablas
+            for table in doc.tables:
+                for row in table.rows:
+                    for cell in row.cells:
+                        for key, value in replacements.items():
+                            if key in cell.text:
+                                cell.text = cell.text.replace(key, value)
+                                cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
 
-        # Modificar las tablas
-        for table in doc.tables:
-            for row in table.rows:
-                for cell in row.cells:
-                    for key, value in replacements.items():
-                        if key in cell.text:
-                            cell.text = cell.text.replace(key, value)
-                            cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
+            # Definir el directorio de salida para los PDFs
+            output_dir = os.path.join('media', 'pdfs')
 
-        # Definir el directorio de salida para los PDFs
-        output_dir = os.path.join('media', 'pdfs')
+            # Crear el directorio si no existe
+            if not os.path.exists(output_dir):
+                os.makedirs(output_dir)
 
-        # Crear el directorio si no existe
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
+            # Guardar el documento modificado temporalmente
+            doc.save(temp_docx_path)
+            temp_docx_paths.append(temp_docx_path)
 
-        # Guardar el documento modificado temporalmente
-        doc.save(temp_docx_path)
-        temp_docx_paths.append(temp_docx_path)  # Agregar a la lista de documentos temporales
+            # Convertir el documento .docx modificado a PDF usando LibreOffice
+            result = subprocess.run(
+                ['libreoffice', '--headless', '--convert-to', 'pdf', '--outdir', output_dir, temp_docx_path],
+                capture_output=True,
+                text=True
+            )
 
-        # Convertir el documento .docx modificado a PDF usando LibreOffice
-        result = subprocess.run(
-            ['libreoffice', '--headless', '--convert-to', 'pdf', '--outdir', output_dir, temp_docx_path],
-            capture_output=True,
-            text=True
-        )
+            if result.returncode != 0:
+                print(f"Error al convertir a PDF: {result.stderr}")
+                return HttpResponse(f"Error durante la conversión a PDF. {result.stderr}", status=500)
 
-        if result.returncode != 0:
-            print(f"Error al convertir a PDF: {result.stderr}")
-            return HttpResponse(f"Error durante la conversión a PDF. {result.stderr}", status=500)
+            # Comprobar el nombre del archivo PDF creado
+            temp_pdf_path = os.path.join(output_dir, f'temp_modified_{i}.pdf')
+            if not os.path.exists(temp_pdf_path):
+                print(f"Error: {temp_pdf_path} no se ha creado.")
+                return HttpResponse(f"Error durante la conversión a PDF.", status=500)
 
-        # Comprobar el nombre del archivo PDF creado
-        temp_pdf_path = os.path.join(output_dir, f'temp_modified_{i}.pdf')
-        if not os.path.exists(temp_pdf_path):
-            print(f"Error: {temp_pdf_path} no se ha creado.")
-            return HttpResponse(f"Error durante la conversión a PDF.", status=500)
+            # Obtener el nombre del archivo PDF
+            pdf_name = f"{request.POST['name']}{request.POST['last_name']}_{start_period.strftime('%m%d%Y')}.pdf"
 
-        # Obtener el nombre del archivo PDF desde los parámetros de la solicitud
-        pdf_name = f"uwu.pdf"
-
-        # Renombrar el archivo PDF
-        final_pdf_path = os.path.join(output_dir, pdf_name)
-        os.rename(temp_pdf_path, final_pdf_path)
-        final_pdf_paths.append(final_pdf_path)
-        
-        check_id = int(check_id) + 13
+            # Renombrar el archivo PDF
+            final_pdf_path = os.path.join(output_dir, pdf_name)
+            os.rename(temp_pdf_path, final_pdf_path)
+            final_pdf_paths.append(final_pdf_path)
 
         # Crear el archivo ZIP en memoria
         zip_buffer = io.BytesIO()
         with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
-            for pdf_path in final_pdf_paths:  # Cambiar pdf_files a final_pdf_paths
+            for pdf_path in final_pdf_paths:
                 zip_file.write(pdf_path, os.path.basename(pdf_path))
 
         # Preparar la respuesta HTTP con el archivo ZIP
