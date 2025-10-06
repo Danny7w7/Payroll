@@ -1,410 +1,377 @@
-from django.shortcuts import redirect, render
-from django.views.decorators.csrf import csrf_exempt
-
-from docx import Document
-from docx.shared import Pt
+"""
+Payroll PDF Generator Views
+"""
+import io
+import math
 import os
 import subprocess
-from django.http import HttpResponse
-from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
-from docx.enum.table import WD_ALIGN_VERTICAL
-
-import datetime
-import io
 import zipfile
+from datetime import datetime, timedelta
+from typing import Tuple, Dict
 
-import math
-from PyPDF2 import PdfReader, PdfWriter
-
-# Create your views here.
-
-@csrf_exempt
-def index(request):
-    if request.method == 'POST':
-        gross_salary, fedWithholding, ss, medicare, fica_deduction = payroll_calculator(int(request.POST['anual']), int(request.POST['period']))
-        # return generate_pdf(request, gross_salary, fedWithholding, ss, medicare, fica_deduction)
-
-        return generate_2do_pdf(request, gross_salary, fedWithholding, ss, medicare, fica_deduction)
-    return render(request, 'index.html')
-
-def payroll_calculator(anual, period):
-    gross_salary = round_up(anual / period)
-    fedWithholding  = round_up(gross_salary * get_tax_rate(anual))
-    ss = round_up(gross_salary * 0.062)
-    medicare = round_up(gross_salary * 0.0145)
-    fica_deduction = round_up(fedWithholding + ss + medicare)
-    return gross_salary, fedWithholding, ss, medicare, fica_deduction
-
-def generate_pdf(request, gross_salary, fedWithholding, ss, medicare, fica_deduction):
-    start_date = datetime.datetime(2023, 12, 21)
-    start_period = get_pay_date_correct(datetime.datetime.strptime(request.POST['start_period'], '%Y-%m-%d'))
-    end_period = get_pay_date_correct(datetime.datetime.strptime(request.POST['end_period'], '%Y-%m-%d'))
-    number_payments = (end_period - start_period).days // 14
-    period = int(request.POST['period'])
-    check_id = request.POST['check_id']
-
-    temp_docx_paths = []
-    temp_pdf_paths = []
-    final_pdf_paths = []
-
-    try:
-        for i in range(number_payments):
-            start_period += datetime.timedelta(days=14)
-            if period == 26:
-                payment_number = (start_period - start_date).days // 14
-            else:
-                payment_number = (start_period - start_date).days // 7
-
-            temp_docx_path = f'temp_modified_{i}.docx'
-            temp_pdf_path = f'temp_output_{i}.pdf'
-            
-            # Cargar el archivo .docx base
-            doc = Document('base.docx')
-            
-            # Modificar el archivo .docx (por ejemplo, agregar un nombre)
-            replacements = {
-                '<<nombre>>': f"{request.POST['name']} {request.POST['last_name']}",
-                '<<client_address>>': request.POST['client_address'],
-                '<<company>>': request.POST['company'],
-                '<<city_state>>': request.POST['city_state'],
-                '<<address_co>>': request.POST['address_co'],
-                '<<check_id>>': str(check_id),
-                '<<fecha>>': start_period.strftime('%m/%d/%Y'),
-                '<<pay_date>>': (start_period - datetime.timedelta(days=14)).strftime('%m/%d/%Y'),
-                '<<netpaytext>>': number_to_words(round(gross_salary - fica_deduction)),
-                '<<decimal>>': get_decimal_part(gross_salary - fica_deduction),
-                '<<ssn_digits>>': request.POST['ssn_digits'],
-                '<<netpay>>': format_number(round_up(gross_salary - fica_deduction)),
-                '<<dependents>>': request.POST['dependents'],
-                '<<salary>>': str(format_number(gross_salary)),
-                '<<fed>>': str(format_number(fedWithholding)),
-                '<<ss>>': str(format_number(ss)),
-                '<<mc>>': str(format_number(medicare)),
-                '<<totalt>>': str(format_number(round_up(fedWithholding + ss + medicare))),
-                # Years to Date
-                '<<salaryytd>>': str(format_number(round_up(gross_salary * payment_number))),
-                '<<fedytd>>': str(format_number(round_up(fedWithholding * payment_number))),
-                '<<ssytd>>': str(format_number(round_up(ss * payment_number))),
-                '<<mcytd>>': str(format_number(round_up(medicare * payment_number))),
-                '<<totaltytd>>': str(format_number(round_up((fedWithholding + ss + medicare) * payment_number))),
-            }
-
-            def change_font_size(run, size):
-                run.font.size = Pt(size)
-
-            def justify_paragraph(paragraph, alignment):
-                paragraph.alignment = alignment
-
-            no_font_size_changes = ['<<nombre>>', '<<fecha>>', '<<netpay>>', '<<dependents>>', '<<pay_date>>']
-
-            # Modificar los párrafos
-            for paragraph in doc.paragraphs:
-                for key, value in replacements.items():
-                    if key in paragraph.text:
-                        paragraph.text = paragraph.text.replace(key, value)
-
-            # Modificar las tablas
-            for table in doc.tables:
-                for row in table.rows:
-                    for cell in row.cells:
-                        for key, value in replacements.items():
-                            if key in cell.text:
-                                cell.text = cell.text.replace(key, value)
-                                for paragraph in cell.paragraphs:
-                                    for run in paragraph.runs:
-                                        if key not in no_font_size_changes:
-                                            change_font_size(run, 7)
-                                            justify_paragraph(paragraph, WD_PARAGRAPH_ALIGNMENT.RIGHT)
-                                        elif key == '<<netpay>>':
-                                            change_font_size(run, 9)
-                                            run.bold = True
-                                        else:
-                                            change_font_size(run, 8)
-                                cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
-
-            # Definir el directorio de salida para los PDFs
-            output_dir = os.path.join('media', 'pdfs')
-
-            # Crear el directorio si no existe
-            if not os.path.exists(output_dir):
-                os.makedirs(output_dir)
-
-            # Guardar el documento modificado temporalmente
-            doc.save(temp_docx_path)
-            temp_docx_paths.append(temp_docx_path)  # Agregar a la lista de documentos temporales
-
-            # Convertir el documento .docx modificado a PDF usando LibreOffice
-            result = subprocess.run(
-                ['libreoffice', '--headless', '--convert-to', 'pdf', '--outdir', output_dir, temp_docx_path],
-                capture_output=True,
-                text=True
-            )
-
-            if result.returncode != 0:
-                print(f"Error al convertir a PDF: {result.stderr}")
-                return HttpResponse(f"Error durante la conversión a PDF. {result.stderr}", status=500)
-
-            # Comprobar el nombre del archivo PDF creado
-            temp_pdf_path = os.path.join(output_dir, f'temp_modified_{i}.pdf')
-            if not os.path.exists(temp_pdf_path):
-                print(f"Error: {temp_pdf_path} no se ha creado.")
-                return HttpResponse(f"Error durante la conversión a PDF.", status=500)
-
-            # Obtener el nombre del archivo PDF desde los parámetros de la solicitud
-            pdf_name = f"{request.POST['name']}{request.POST['last_name']}_{start_period.strftime('%m%d%Y')}_{round_up(gross_salary)}{'BiWeekly' if request.POST['period'] == '26' else 'Weekly' if request.POST['period'] == '52' else ''}.pdf"
-
-            # Renombrar el archivo PDF
-            final_pdf_path = os.path.join(output_dir, pdf_name)
-            os.rename(temp_pdf_path, final_pdf_path)
-            final_pdf_paths.append(final_pdf_path)
-            
-            check_id = int(check_id) + 13
-
-        # Crear el archivo ZIP en memoria
-        zip_buffer = io.BytesIO()
-        with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
-            for pdf_path in final_pdf_paths:  # Cambiar pdf_files a final_pdf_paths
-                zip_file.write(pdf_path, os.path.basename(pdf_path))
-
-        # Preparar la respuesta HTTP con el archivo ZIP
-        zip_buffer.seek(0)
-        response = HttpResponse(zip_buffer, content_type='application/zip')
-        response['Content-Disposition'] = 'attachment; filename="payroll_pdfs.zip"'
-        
-    finally:
-        for path in temp_docx_paths + temp_pdf_paths + final_pdf_paths:
-            if os.path.exists(path):
-                os.remove(path)
-
-    return response
+from django.http import HttpResponse, HttpRequest
+from django.shortcuts import render
+from django.views.decorators.csrf import csrf_exempt
+from docx import Document
+from docx.enum.table import WD_ALIGN_VERTICAL
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+from docx.shared import Pt
 
 
+# Constants
+TAX_BRACKETS = [
+    (0, 10275, 0.10),
+    (10276, 41775, 0.12),
+    (41776, 89075, 0.22),
+    (89076, 170050, 0.24),
+    (170051, 215950, 0.32),
+    (215951, 539900, 0.35),
+    (539901, float('inf'), 0.37)
+]
+
+SOCIAL_SECURITY_RATE = 0.062
+MEDICARE_RATE = 0.0145
+
+START_DATE = datetime(2023, 12, 21)
+PAY_DATE_REFERENCE = datetime(2023, 12, 22)
+BIWEEKLY_DAYS = 14
+WEEKLY_DAYS = 7
+
+NUMBER_WORDS = {
+    0: "ZERO", 1: "ONE", 2: "TWO", 3: "THREE", 4: "FOUR", 5: "FIVE",
+    6: "SIX", 7: "SEVEN", 8: "EIGHT", 9: "NINE", 10: "TEN",
+    11: "ELEVEN", 12: "TWELVE", 13: "THIRTEEN", 14: "FOURTEEN", 15: "FIFTEEN",
+    16: "SIXTEEN", 17: "SEVENTEEN", 18: "EIGHTEEN", 19: "NINETEEN",
+    20: "TWENTY", 30: "THIRTY", 40: "FORTY", 50: "FIFTY",
+    60: "SIXTY", 70: "SEVENTY", 80: "EIGHTY", 90: "NINETY"
+}
+
+HUNDREDS_WORDS = {
+    100: "HUNDRED",
+    1000: "THOUSAND"
+}
 
 
-def get_tax_rate(income):
-    tax_brackets = [
-        (0, 10275, 0.10),
-        (10276, 41775, 0.12),
-        (41776, 89075, 0.22),
-        (89076, 170050, 0.24),
-        (170051, 215950, 0.32), 
-        (215951, 539900, 0.35),
-        (539901, float('inf'), 0.37)
-    ]
+class PayrollCalculator:
+    """Calculate payroll deductions and taxes"""
     
-    for lower, upper, rate in tax_brackets:
-        if lower <= income <= upper:
-            return rate
+    @staticmethod
+    def calculate(annual_salary: int, pay_period: int) -> Tuple[float, float, float, float, float]:
+        """
+        Calculate payroll values
         
-def format_number(number):
-    return "{:,.2f}".format(number)
+        Args:
+            annual_salary: Annual salary amount
+            pay_period: Number of pay periods per year
+            
+        Returns:
+            Tuple of (gross_salary, fed_withholding, ss, medicare, fica_deduction)
+        """
+        gross_salary = PayrollCalculator._round_up(annual_salary / pay_period)
+        fed_withholding = PayrollCalculator._round_up(
+            gross_salary * PayrollCalculator._get_tax_rate(annual_salary)
+        )
+        ss = PayrollCalculator._round_up(gross_salary * SOCIAL_SECURITY_RATE)
+        medicare = PayrollCalculator._round_up(gross_salary * MEDICARE_RATE)
+        fica_deduction = PayrollCalculator._round_up(fed_withholding + ss + medicare)
+        
+        return gross_salary, fed_withholding, ss, medicare, fica_deduction
+    
+    @staticmethod
+    def _get_tax_rate(income: float) -> float:
+        """Get applicable tax rate based on income"""
+        for lower, upper, rate in TAX_BRACKETS:
+            if lower <= income <= upper:
+                return rate
+        return TAX_BRACKETS[-1][2]  # Return highest bracket if not found
+    
+    @staticmethod
+    def _round_up(number: float, decimals: int = 2) -> float:
+        """Round up to specified decimal places"""
+        factor = 10 ** decimals
+        return math.ceil(number * factor) / factor
 
-def round_up(number, decimals=2):
-    factor = 10 ** decimals
-    return math.ceil(number * factor) / factor
 
-def number_to_words(num):
-    # Definimos palabras para números del 0 al 19 y de 20 en 20 hasta 90
-    num_words = {
-        0: "ZERO", 1: "ONE", 2: "TWO", 3: "THREE", 4: "FOUR", 5: "FIVE",
-        6: "SIX", 7: "SEVEN", 8: "EIGHT", 9: "NINE", 10: "TEN",
-        11: "ELEVEN", 12: "TWELVE", 13: "THIRTEEN", 14: "FOURTEEN", 15: "FIFTEEN",
-        16: "SIXTEEN", 17: "SEVENTEEN", 18: "EIGHTEEN", 19: "NINETEEN",
-        20: "TWENTY", 30: "THIRTY", 40: "FORTY", 50: "FIFTY",
-        60: "SIXTY", 70: "SEVENTY", 80: "EIGHTY", 90: "NINETY"
-    }
-
-    # Definimos palabras para las centenas
-    hundreds_words = {
-        100: "HUNDRED", 1000: "THOUSAND"
-    }
-
-    if num < 20:
-        return num_words[num]
-    elif num < 100:
-        tens = num // 10 * 10
-        ones = num % 10
-        if ones == 0:
-            return num_words[tens]
-        else:
-            return num_words[tens] + " " + num_words[ones]
-    elif num < 1000:
-        hundreds = num // 100
-        remainder = num % 100
-        if remainder == 0:
-            return num_words[hundreds] + " " + hundreds_words[100]
-        else:
-            return num_words[hundreds] + " " + hundreds_words[100] + " AND " + number_to_words(remainder)
-    elif num < 10000:
-        thousands = num // 1000
-        remainder = num % 1000
-        if remainder == 0:
-            return num_words[thousands] + " " + hundreds_words[1000]
-        else:
-            return num_words[thousands] + " " + hundreds_words[1000] + " " + number_to_words(remainder)
-    else:
+class NumberFormatter:
+    """Format numbers for display"""
+    
+    @staticmethod
+    def format_currency(number: float) -> str:
+        """Format number as currency with commas and 2 decimals"""
+        return "{:,.2f}".format(number)
+    
+    @staticmethod
+    def get_decimal_part(number: float) -> str:
+        """Extract decimal part of a number as string"""
+        number_str = str(number)
+        parts = number_str.split('.')
+        if len(parts) > 1:
+            return parts[1][:2].ljust(2, '0')
+        return "00"
+    
+    @staticmethod
+    def number_to_words(num: int) -> str:
+        """Convert number to words in English (0-9999)"""
+        if num < 20:
+            return NUMBER_WORDS[num]
+        elif num < 100:
+            tens = num // 10 * 10
+            ones = num % 10
+            if ones == 0:
+                return NUMBER_WORDS[tens]
+            return f"{NUMBER_WORDS[tens]} {NUMBER_WORDS[ones]}"
+        elif num < 1000:
+            hundreds = num // 100
+            remainder = num % 100
+            if remainder == 0:
+                return f"{NUMBER_WORDS[hundreds]} {HUNDREDS_WORDS[100]}"
+            return f"{NUMBER_WORDS[hundreds]} {HUNDREDS_WORDS[100]} AND {NumberFormatter.number_to_words(remainder)}"
+        elif num < 10000:
+            thousands = num // 1000
+            remainder = num % 1000
+            if remainder == 0:
+                return f"{NUMBER_WORDS[thousands]} {HUNDREDS_WORDS[1000]}"
+            return f"{NUMBER_WORDS[thousands]} {HUNDREDS_WORDS[1000]} {NumberFormatter.number_to_words(remainder)}"
         return "Number out of range (must be between 0 and 9999)"
+
+
+class PayDateCalculator:
+    """Calculate and validate pay dates"""
     
-def get_decimal_part(number):
-    # Convert the number to string if it's not already
-    number_str = str(number)
-    # Split into integer and decimal parts
-    parts = number_str.split('.')
-    if len(parts) > 1:
-        # Return only the first two digits of the decimal part
-        return parts[1][:2].ljust(2, '0')  # Ensure it always returns at least two digits
-    else:
-        return "00"  # Return '00' if there is no decimal part
+    @staticmethod
+    def get_correct_pay_date(pay_date: datetime) -> datetime:
+        """
+        Adjust pay date to fall on a valid biweekly schedule
+        
+        Args:
+            pay_date: The requested pay date
+            
+        Returns:
+            Adjusted pay date that falls on the biweekly schedule
+        """
+        if (pay_date - datetime(2024, 1, 5)).days % BIWEEKLY_DAYS == 0:
+            return pay_date
+        
+        rounded = (pay_date - PAY_DATE_REFERENCE).days // BIWEEKLY_DAYS
+        mult = rounded * BIWEEKLY_DAYS
+        return PAY_DATE_REFERENCE + timedelta(days=mult)
+
+
+class PayrollDocumentGenerator:
+    """Generate payroll documents"""
     
-def get_pay_date_correct(pay_date):
-    start_date = datetime.datetime(2023, 12, 22)
-    if (pay_date - datetime.datetime(2024, 1, 5)).days % 14 == 0:
-        return pay_date
-    else:
-        rounded = (pay_date - start_date).days // 14
-        mult = rounded * 14
-        date_object = start_date + datetime.timedelta(days=mult)
-        return date_object
-
-
-def generate_2do_pdf(request, gross_salary, fedWithholding, ss, medicare, fica_deduction):
-    start_date = datetime.datetime(2023, 12, 21)
-    start_period = get_pay_date_correct(datetime.datetime.strptime(request.POST['start_period'], '%Y-%m-%d'))
-    end_period = get_pay_date_correct(datetime.datetime.strptime(request.POST['end_period'], '%Y-%m-%d'))
-    number_payments = (end_period - start_period).days // 14
-    period = int(request.POST['period'])
-    check_id = request.POST['check_id']
-
-    temp_docx_paths = []
-    temp_pdf_paths = []
-    final_pdf_paths = []
-
-    try:
-        # LOOP para generar múltiples PDFs
-        for i in range(number_payments):
-            start_period += datetime.timedelta(days=14)
-            if period == 26:
-                payment_number = (start_period - start_date).days // 14
-            else:
-                payment_number = (start_period - start_date).days // 7
-
-            temp_docx_path = f'temp_modified_{i}.docx'
-            temp_pdf_path = f'temp_output_{i}.pdf'
+    def __init__(self, request_data: Dict, payroll_data: Tuple):
+        self.request_data = request_data
+        self.gross_salary, self.fed_withholding, self.ss, self.medicare, self.fica_deduction = payroll_data
+        self.output_dir = os.path.join('media', 'pdfs')
+        
+    def generate_multiple_pdfs(self) -> HttpResponse:
+        """Generate multiple payroll PDFs and return as ZIP"""
+        start_period = PayDateCalculator.get_correct_pay_date(
+            datetime.strptime(self.request_data['start_period'], '%Y-%m-%d')
+        )
+        end_period = PayDateCalculator.get_correct_pay_date(
+            datetime.strptime(self.request_data['end_period'], '%Y-%m-%d')
+        )
+        number_payments = (end_period - start_period).days // BIWEEKLY_DAYS
+        period = int(self.request_data['period'])
+        
+        temp_files = []
+        final_pdf_paths = []
+        
+        try:
+            self._ensure_output_dir()
             
-            # Cargar el archivo .docx base
-            doc = Document('base.docx')
+            for i in range(number_payments):
+                start_period += timedelta(days=BIWEEKLY_DAYS)
+                payment_number = self._calculate_payment_number(start_period, period)
+                
+                temp_docx, final_pdf = self._generate_single_pdf(
+                    i, start_period, payment_number
+                )
+                temp_files.append(temp_docx)
+                final_pdf_paths.append(final_pdf)
             
-            # Modificar el archivo .docx
-            replacements = {
-                '<<nombre>>': f"{request.POST['name']} {request.POST['last_name']}",
-                '<<client_address>>': request.POST['client_address'],
-                '<<company>>': request.POST['company'],
-                '<<city_state>>': request.POST['city_state'],
-                '<<address_co>>': request.POST['address_co'],
-                '<<check_id>>': str(check_id),
-                '<<fecha>>': start_period.strftime('%m/%d/%Y'),
-                '<<pay_date>>': (start_period - datetime.timedelta(days=14)).strftime('%m/%d/%Y'),
-                '<<netpaytext>>': number_to_words(round(gross_salary - fica_deduction)),
-                '<<decimal>>': get_decimal_part(gross_salary - fica_deduction),
-                '<<ssn_digits>>': request.POST['ssn_digits'],
-                '<<netpay>>': format_number(round_up(gross_salary - fica_deduction)),
-                '<<dependents>>': request.POST['dependents'],
-                '<<salary>>': str(format_number(gross_salary)),
-                '<<fed>>': str(format_number(fedWithholding)),
-                '<<ss>>': str(format_number(ss)),
-                '<<mc>>': str(format_number(medicare)),
-                '<<totalt>>': str(format_number(round_up(fedWithholding + ss + medicare))),
-                # Years to Date
-                '<<salaryytd>>': str(format_number(round_up(gross_salary * payment_number))),
-                '<<fedytd>>': str(format_number(round_up(fedWithholding * payment_number))),
-                '<<ssytd>>': str(format_number(round_up(ss * payment_number))),
-                '<<mcytd>>': str(format_number(round_up(medicare * payment_number))),
-                '<<totaltytd>>': str(format_number(round_up((fedWithholding + ss + medicare) * payment_number))),
-            }
-
-            def change_font_size(run, size):
-                run.font.size = Pt(size)
-
-            def justify_paragraph(paragraph, alignment):
-                paragraph.alignment = alignment
-
-            no_font_size_changes = ['<<nombre>>', '<<fecha>>', '<<netpay>>', '<<dependents>>', '<<pay_date>>']
-
-            # Modificar los párrafos
-            for paragraph in doc.paragraphs:
-                for key, value in replacements.items():
-                    if key in paragraph.text:
-                        paragraph.text = paragraph.text.replace(key, value)
-
-            # Modificar las tablas
-            for table in doc.tables:
-                for row in table.rows:
-                    for cell in row.cells:
-                        for key, value in replacements.items():
-                            if key in cell.text:
-                                cell.text = cell.text.replace(key, value)
-                                for paragraph in cell.paragraphs:
-                                    for run in paragraph.runs:
-                                        if key not in no_font_size_changes:
-                                            change_font_size(run, 7)
-                                            justify_paragraph(paragraph, WD_PARAGRAPH_ALIGNMENT.RIGHT)
-                                        elif key == '<<netpay>>':
-                                            change_font_size(run, 9)
-                                            run.bold = True
-                                        else:
-                                            change_font_size(run, 8)
-                                cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
-
-            # Definir el directorio de salida para los PDFs
-            output_dir = os.path.join('media', 'pdfs')
-
-            # Crear el directorio si no existe
-            if not os.path.exists(output_dir):
-                os.makedirs(output_dir)
-
-            # Guardar el documento modificado temporalmente
-            doc.save(temp_docx_path)
-            temp_docx_paths.append(temp_docx_path)
-
-            # Convertir el documento .docx modificado a PDF usando LibreOffice
-            result = subprocess.run(
-                ['libreoffice', '--headless', '--convert-to', 'pdf', '--outdir', output_dir, temp_docx_path],
-                capture_output=True,
-                text=True
-            )
-
-            if result.returncode != 0:
-                print(f"Error al convertir a PDF: {result.stderr}")
-                return HttpResponse(f"Error durante la conversión a PDF. {result.stderr}", status=500)
-
-            # Comprobar el nombre del archivo PDF creado
-            temp_pdf_path = os.path.join(output_dir, f'temp_modified_{i}.pdf')
-            if not os.path.exists(temp_pdf_path):
-                print(f"Error: {temp_pdf_path} no se ha creado.")
-                return HttpResponse(f"Error durante la conversión a PDF.", status=500)
-
-            # Obtener el nombre del archivo PDF
-            pdf_name = f"{request.POST['name']}{request.POST['last_name']}_{start_period.strftime('%m%d%Y')}.pdf"
-
-            # Renombrar el archivo PDF
-            final_pdf_path = os.path.join(output_dir, pdf_name)
-            os.rename(temp_pdf_path, final_pdf_path)
-            final_pdf_paths.append(final_pdf_path)
-
-        # Crear el archivo ZIP en memoria
+            return self._create_zip_response(final_pdf_paths)
+            
+        finally:
+            self._cleanup_files(temp_files + final_pdf_paths)
+    
+    def _ensure_output_dir(self):
+        """Create output directory if it doesn't exist"""
+        if not os.path.exists(self.output_dir):
+            os.makedirs(self.output_dir)
+    
+    def _calculate_payment_number(self, start_period: datetime, period: int) -> int:
+        """Calculate the payment number based on period"""
+        days_divisor = BIWEEKLY_DAYS if period == 26 else WEEKLY_DAYS
+        return (start_period - START_DATE).days // days_divisor
+    
+    def _generate_single_pdf(self, index: int, start_period: datetime, 
+                            payment_number: int) -> Tuple[str, str]:
+        """Generate a single payroll PDF"""
+        temp_docx_path = f'temp_modified_{index}.docx'
+        
+        # Create and modify document
+        doc = Document('base.docx')
+        replacements = self._get_replacements(start_period, payment_number)
+        self._apply_replacements(doc, replacements)
+        
+        # Save temporary docx
+        doc.save(temp_docx_path)
+        
+        # Convert to PDF
+        final_pdf_path = self._convert_to_pdf(temp_docx_path, index, start_period)
+        
+        return temp_docx_path, final_pdf_path
+    
+    def _get_replacements(self, start_period: datetime, payment_number: int) -> Dict[str, str]:
+        """Get dictionary of placeholder replacements"""
+        net_pay = self.gross_salary - self.fica_deduction
+        check_id = self.request_data.get('check_id', '')
+        
+        return {
+            '<<nombre>>': f"{self.request_data['name']} {self.request_data['last_name']}",
+            '<<client_address>>': self.request_data['client_address'],
+            '<<company>>': self.request_data['company'],
+            '<<city_state>>': self.request_data['city_state'],
+            '<<address_co>>': self.request_data['address_co'],
+            '<<check_id>>': str(check_id),
+            '<<fecha>>': start_period.strftime('%m/%d/%Y'),
+            '<<pay_date>>': (start_period - timedelta(days=BIWEEKLY_DAYS)).strftime('%m/%d/%Y'),
+            '<<netpaytext>>': NumberFormatter.number_to_words(round(net_pay)),
+            '<<decimal>>': NumberFormatter.get_decimal_part(net_pay),
+            '<<ssn_digits>>': self.request_data['ssn_digits'],
+            '<<netpay>>': NumberFormatter.format_currency(PayrollCalculator._round_up(net_pay)),
+            '<<dependents>>': self.request_data['dependents'],
+            '<<salary>>': NumberFormatter.format_currency(self.gross_salary),
+            '<<fed>>': NumberFormatter.format_currency(self.fed_withholding),
+            '<<ss>>': NumberFormatter.format_currency(self.ss),
+            '<<mc>>': NumberFormatter.format_currency(self.medicare),
+            '<<totalt>>': NumberFormatter.format_currency(
+                PayrollCalculator._round_up(self.fed_withholding + self.ss + self.medicare)
+            ),
+            # Year to Date
+            '<<salaryytd>>': NumberFormatter.format_currency(
+                PayrollCalculator._round_up(self.gross_salary * payment_number)
+            ),
+            '<<fedytd>>': NumberFormatter.format_currency(
+                PayrollCalculator._round_up(self.fed_withholding * payment_number)
+            ),
+            '<<ssytd>>': NumberFormatter.format_currency(
+                PayrollCalculator._round_up(self.ss * payment_number)
+            ),
+            '<<mcytd>>': NumberFormatter.format_currency(
+                PayrollCalculator._round_up(self.medicare * payment_number)
+            ),
+            '<<totaltytd>>': NumberFormatter.format_currency(
+                PayrollCalculator._round_up(
+                    (self.fed_withholding + self.ss + self.medicare) * payment_number
+                )
+            ),
+        }
+    
+    def _apply_replacements(self, doc: Document, replacements: Dict[str, str]):
+        """Apply text replacements and formatting to document"""
+        no_font_size_changes = {'<<nombre>>', '<<fecha>>', '<<netpay>>', 
+                               '<<dependents>>', '<<pay_date>>'}
+        
+        # Replace in paragraphs
+        for paragraph in doc.paragraphs:
+            for key, value in replacements.items():
+                if key in paragraph.text:
+                    paragraph.text = paragraph.text.replace(key, value)
+        
+        # Replace and format in tables
+        for table in doc.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    for key, value in replacements.items():
+                        if key in cell.text:
+                            cell.text = cell.text.replace(key, value)
+                            self._format_cell(cell, key, no_font_size_changes)
+                            cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
+    
+    def _format_cell(self, cell, key: str, no_font_size_changes: set):
+        """Format a cell based on the key"""
+        for paragraph in cell.paragraphs:
+            for run in paragraph.runs:
+                if key not in no_font_size_changes:
+                    run.font.size = Pt(7)
+                    paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
+                elif key == '<<netpay>>':
+                    run.font.size = Pt(9)
+                    run.bold = True
+                else:
+                    run.font.size = Pt(8)
+    
+    def _convert_to_pdf(self, docx_path: str, index: int, 
+                       start_period: datetime) -> str:
+        """Convert DOCX to PDF using LibreOffice"""
+        result = subprocess.run(
+            ['libreoffice', '--headless', '--convert-to', 'pdf', 
+             '--outdir', self.output_dir, docx_path],
+            capture_output=True,
+            text=True
+        )
+        
+        if result.returncode != 0:
+            raise RuntimeError(f"PDF conversion failed: {result.stderr}")
+        
+        temp_pdf_path = os.path.join(self.output_dir, f'temp_modified_{index}.pdf')
+        if not os.path.exists(temp_pdf_path):
+            raise FileNotFoundError(f"PDF not created: {temp_pdf_path}")
+        
+        # Rename to final name
+        pdf_name = (f"{self.request_data['name']}{self.request_data['last_name']}_"
+                   f"{start_period.strftime('%m%d%Y')}.pdf")
+        final_pdf_path = os.path.join(self.output_dir, pdf_name)
+        os.rename(temp_pdf_path, final_pdf_path)
+        
+        return final_pdf_path
+    
+    def _create_zip_response(self, pdf_paths: list) -> HttpResponse:
+        """Create ZIP file response with all PDFs"""
         zip_buffer = io.BytesIO()
         with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
-            for pdf_path in final_pdf_paths:
+            for pdf_path in pdf_paths:
                 zip_file.write(pdf_path, os.path.basename(pdf_path))
-
-        # Preparar la respuesta HTTP con el archivo ZIP
+        
         zip_buffer.seek(0)
         response = HttpResponse(zip_buffer, content_type='application/zip')
         response['Content-Disposition'] = 'attachment; filename="payroll_pdfs.zip"'
-        
-    finally:
-        for path in temp_docx_paths + temp_pdf_paths + final_pdf_paths:
+        return response
+    
+    @staticmethod
+    def _cleanup_files(file_paths: list):
+        """Remove temporary files"""
+        for path in file_paths:
             if os.path.exists(path):
-                os.remove(path)
+                try:
+                    os.remove(path)
+                except OSError:
+                    pass  # Ignore cleanup errors
 
-    return response
+
+# Views
+@csrf_exempt
+def index(request: HttpRequest) -> HttpResponse:
+    """Main view for payroll generation"""
+    if request.method == 'POST':
+        try:
+            annual_salary = int(request.POST['anual'])
+            pay_period = int(request.POST['period'])
+            
+            # Calculate payroll
+            payroll_data = PayrollCalculator.calculate(annual_salary, pay_period)
+            
+            # Generate PDFs
+            generator = PayrollDocumentGenerator(request.POST, payroll_data)
+            return generator.generate_multiple_pdfs()
+            
+        except (ValueError, KeyError) as e:
+            return HttpResponse(f"Invalid input data: {str(e)}", status=400)
+        except RuntimeError as e:
+            return HttpResponse(f"Error generating PDFs: {str(e)}", status=500)
+    
+    return render(request, 'index.html')
