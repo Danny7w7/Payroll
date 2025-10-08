@@ -434,6 +434,9 @@ def payment_cancel(request):
 
 @csrf_exempt
 def payroll_view(request: HttpRequest, token: str) -> HttpResponse:
+
+    if not token or not token.is_valid():
+        return redirect('index')
     """Main view for payroll generation."""
     if request.method == 'POST':
         try:
@@ -456,7 +459,6 @@ def payroll_view(request: HttpRequest, token: str) -> HttpResponse:
         except RuntimeError as e:
             return HttpResponse(f"Error generating PDFs: {str(e)}", status=500)
     else:
-        get_object_or_404(PaymentToken, token=token)
         return render(request, 'payroll_view.html')
 
 
