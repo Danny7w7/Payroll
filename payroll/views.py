@@ -435,7 +435,9 @@ def payment_cancel(request):
 @csrf_exempt
 def payroll_view(request: HttpRequest, token: str) -> HttpResponse:
 
-    if not token or not token.is_valid():
+    token_obj = get_object_or_404(PaymentToken, token=token)
+
+    if not token_obj or not token_obj.is_valid():
         return redirect('index')
     """Main view for payroll generation."""
     if request.method == 'POST':
