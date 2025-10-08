@@ -19,4 +19,8 @@ from payroll import views
 
 urlpatterns = [
     path('', views.index, name='index'),
+    path('payroll/<str:token>/', views.payroll_view, name='payroll'),
+    path('payment/cancel/', views.payment_cancel, name='payment_cancel'),
+    path('webhook/stripe/', views.stripe_webhook, name='stripe_webhook'),
+    path('payment/success/', views.payment_success, name='payment_success'),
 ]

@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <title>PayRoll - Payment Error</title>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous" />
+        <style>
+            body {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                padding: 20px;
+            }
+
+            .error-container {
+                background: white;
+                border-radius: 20px;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                padding: 50px;
+                max-width: 600px;
+                width: 100%;
+                text-align: center;
+            }
+
+            .icon-box {
+                width: 90px;
+                height: 90px;
+                background: linear-gradient(135deg, #ff6b6b 0%, #c44569 100%);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto 30px;
+            }
+
+            .icon-box svg {
+                width: 48px;
+                height: 48px;
+                fill: white;
+            }
+
+            h1 {
+                color: #c44569;
+                font-weight: 700;
+                font-size: 2.3rem;
+                margin-bottom: 15px;
+            }
+
+            .subtitle {
+                color: #6c757d;
+                font-size: 1.1rem;
+                margin-bottom: 40px;
+            }
+
+            .btn-action {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                border: none;
+                padding: 16px 50px;
+                font-size: 1.2rem;
+                font-weight: 600;
+                border-radius: 50px;
+                color: white;
+                width: 100%;
+                cursor: pointer;
+                transition: transform 0.3s ease, box-shadow 0.3s ease;
+                margin-bottom: 20px;
+            }
+
+            .btn-action:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+            }
+
+            .support-link {
+                color: #667eea;
+                font-weight: 600;
+                text-decoration: none;
+                transition: color 0.3s ease;
+            }
+
+            .support-link:hover {
+                color: #764ba2;
+                text-decoration: underline;
+            }
+
+            .secure-badge {
+                display: inline-flex;
+                align-items: center;
+                background: #f8f9fa;
+                padding: 10px 20px;
+                border-radius: 50px;
+                color: #6c757d;
+                font-size: 0.9rem;
+                margin-top: 30px;
+            }
+
+            .secure-badge svg {
+                width: 18px;
+                height: 18px;
+                margin-right: 8px;
+                fill: #28a745;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div class="error-container">
+            <div class="icon-box">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 14h-1v-1h2v1h-1zm1-4h-2V7h2v5z"/>
+                </svg>
+            </div>
+
+            <h1>Payment Failed</h1>
+            <p class="subtitle">
+                Unfortunately, your payment couldn’t be completed or was canceled.<br>
+                Please try again or contact support if the issue persists.
+            </p>
+
+            <form action="{% url 'index' %}" method="get">
+                <button type="submit" class="btn-action">Try Again</button>
+            </form>
+
+            <a href="mailto:support@payroll.com" class="support-link">Contact Support</a>
+
+            <div class="secure-badge">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
+                </svg>
+                Secured by Stripe
+            </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+    </body>
+</html>

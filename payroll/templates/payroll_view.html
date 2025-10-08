@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <title>PayRoll</title>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous" />
+        <style>
+            body {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
+                padding: 40px 0;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            }
+            
+            .form-container {
+                background: white;
+                border-radius: 20px;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                padding: 40px;
+                max-width: 1200px;
+                margin: 0 auto;
+            }
+            
+            .form-header {
+                text-align: center;
+                margin-bottom: 40px;
+            }
+            
+            .form-header h1 {
+                color: #667eea;
+                font-weight: 700;
+                font-size: 2.5rem;
+                margin-bottom: 10px;
+            }
+            
+            .form-header p {
+                color: #6c757d;
+                font-size: 1.1rem;
+            }
+            
+            .section-title {
+                color: #764ba2;
+                font-weight: 600;
+                font-size: 1.3rem;
+                margin: 30px 0 20px 0;
+                padding-bottom: 10px;
+                border-bottom: 3px solid #667eea;
+            }
+            
+            .form-label {
+                font-weight: 600;
+                color: #495057;
+                margin-bottom: 8px;
+            }
+            
+            .form-control, .form-select {
+                border: 2px solid #e9ecef;
+                border-radius: 10px;
+                padding: 12px 15px;
+                transition: all 0.3s ease;
+            }
+            
+            .form-control:focus, .form-select:focus {
+                border-color: #667eea;
+                box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+            }
+            
+            .btn-submit {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                border: none;
+                padding: 15px 40px;
+                font-size: 1.2rem;
+                font-weight: 600;
+                border-radius: 50px;
+                color: white;
+                transition: transform 0.3s ease, box-shadow 0.3s ease;
+                margin-top: 30px;
+            }
+            
+            .btn-submit:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+            }
+            
+            .icon-box {
+                display: inline-block;
+                width: 60px;
+                height: 60px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin-bottom: 20px;
+            }
+            
+            .icon-box svg {
+                width: 30px;
+                height: 30px;
+                fill: white;
+            }
+        </style>
+    </head>
+
+    <body>
+        <main class="container-fluid">
+            <div class="form-container">
+                <div class="form-header">
+                    <div class="icon-box mx-auto">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.31-8.86c-1.77-.45-2.34-.94-2.34-1.67 0-.84.79-1.43 2.1-1.43 1.38 0 1.9.66 1.94 1.64h1.71c-.05-1.34-.87-2.57-2.49-2.97V5H10.9v1.69c-1.51.32-2.72 1.3-2.72 2.81 0 1.79 1.49 2.69 3.66 3.21 1.95.46 2.34 1.15 2.34 1.87 0 .53-.39 1.39-2.1 1.39-1.6 0-2.23-.72-2.32-1.64H8.04c.1 1.7 1.36 2.66 2.86 2.97V19h2.34v-1.67c1.52-.29 2.72-1.16 2.73-2.77-.01-2.2-1.9-2.96-3.66-3.42z"/>
+                        </svg>
+                    </div>
+                    <h1>PayRoll System</h1>
+                    <p>Complete employee payroll information</p>
+                </div>
+                
+                <form method="post">
+                    <div class="section-title">📊 Salary Information</div>
+                    <div class="row">
+                        <div class="mb-3 col-md-6">
+                            <label class="form-label">Anual</label>
+                            <input type="text" class="form-control" name="anual" id="anual" placeholder="Enter annual salary"/>
+                        </div>
+                        <div class="mb-3 col-md-6">
+                            <label class="form-label">Period</label>
+                            <select class="form-select" name="period" id="period">
+                                <option selected disabled>Select one</option>
+                                <option value=26>Bi-Weekly</option>
+                                <option value=52>Weelky</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="section-title">👤 Employee Information</div>
+                    <div class="row">
+                        <div class="mb-3 col-md-6">
+                            <label class="form-label">Name</label>
+                            <input type="text" class="form-control" name="name" id="name" placeholder="Enter first name"/>
+                        </div>
+                        <div class="mb-3 col-md-6">
+                            <label class="form-label">Last name</label>
+                            <input type="text" class="form-control" name="last_name" id="last_name" placeholder="Enter last name"/>
+                        </div>
+                        <div class="mb-3 col-md-6">
+                            <label class="form-label">Client address</label>
+                            <input type="text" class="form-control" name="client_address" id="client_address" placeholder="Enter street address"/>
+                        </div>
+                        <div class="mb-3 col-md-6">
+                            <label class="form-label">City and State</label>
+                            <input type="text" class="form-control" name="city_state" id="city_state" placeholder="Enter city and state"/>
+                        </div>
+                        <div class="mb-3 col-md-4">
+                            <label class="form-label">Phone</label>
+                            <input type="number" class="form-control" name="phone" id="phone" placeholder="(555) 555-5555"/>
+                        </div>
+                        <div class="mb-3 col-md-4">
+                            <label class="form-label">Last 4 SSN digits</label>
+                            <input type="number" class="form-control" name="ssn_digits" id="ssn_digits" placeholder="1234" maxlength="4"/>
+                        </div>
+                        <div class="mb-3 col-md-4">
+                            <label class="form-label">Number of dependents</label>
+                            <input type="number" class="form-control" name="dependents" id="dependents" placeholder="0"/>
+                        </div>
+                    </div>
+
+                    <div class="section-title">🏢 Company Information</div>
+                    <div class="row">
+                        <div class="mb-3 col-md-6">
+                            <label class="form-label">Company</label>
+                            <input type="text" class="form-control" name="company" id="company" placeholder="Enter company name"/>
+                        </div>
+                        <div class="mb-3 col-md-6">
+                            <label class="form-label">address CO</label>
+                            <input type="text" class="form-control" name="address_co" id="address_co" placeholder="Enter company address"/>
+                        </div>
+                    </div>
+
+                    <div class="section-title">📅 Payment Period</div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Check ID</label>
+                            <input type="number" class="form-control" name="check_id" id="check_id" placeholder="Enter check number"/>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Start Date</label>
+                            <input class='form-control' type="date" name="start_period"/>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">End Date</label>
+                            <input class='form-control' type="date" name="end_period"/>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-submit">
+                            Button
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </main>
+
+        <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.min.js" integrity="sha384-BBtl+eGJRgqQAUMxJ7pMwbEyER4l1g+O15P+16Ep7Q9Q+zqX6gSbd85u4mG4QzX+" crossorigin="anonymous"></script>
+    </body>
+</html>

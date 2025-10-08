@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
     <head>
-        <title>PayRoll</title>
+        <title>PayRoll - Payment</title>
         <meta charset="utf-8"/>
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous" />
@@ -9,198 +9,241 @@
             body {
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                 min-height: 100vh;
-                padding: 40px 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
                 font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                padding: 20px;
             }
             
-            .form-container {
+            .payment-container {
                 background: white;
                 border-radius: 20px;
                 box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-                padding: 40px;
-                max-width: 1200px;
-                margin: 0 auto;
-            }
-            
-            .form-header {
+                padding: 50px;
+                max-width: 600px;
+                width: 100%;
                 text-align: center;
-                margin-bottom: 40px;
-            }
-            
-            .form-header h1 {
-                color: #667eea;
-                font-weight: 700;
-                font-size: 2.5rem;
-                margin-bottom: 10px;
-            }
-            
-            .form-header p {
-                color: #6c757d;
-                font-size: 1.1rem;
-            }
-            
-            .section-title {
-                color: #764ba2;
-                font-weight: 600;
-                font-size: 1.3rem;
-                margin: 30px 0 20px 0;
-                padding-bottom: 10px;
-                border-bottom: 3px solid #667eea;
-            }
-            
-            .form-label {
-                font-weight: 600;
-                color: #495057;
-                margin-bottom: 8px;
-            }
-            
-            .form-control, .form-select {
-                border: 2px solid #e9ecef;
-                border-radius: 10px;
-                padding: 12px 15px;
-                transition: all 0.3s ease;
-            }
-            
-            .form-control:focus, .form-select:focus {
-                border-color: #667eea;
-                box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-            }
-            
-            .btn-submit {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                border: none;
-                padding: 15px 40px;
-                font-size: 1.2rem;
-                font-weight: 600;
-                border-radius: 50px;
-                color: white;
-                transition: transform 0.3s ease, box-shadow 0.3s ease;
-                margin-top: 30px;
-            }
-            
-            .btn-submit:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
             }
             
             .icon-box {
-                display: inline-block;
-                width: 60px;
-                height: 60px;
+                width: 80px;
+                height: 80px;
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                 border-radius: 50%;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                margin-bottom: 20px;
+                margin: 0 auto 30px;
             }
             
             .icon-box svg {
-                width: 30px;
-                height: 30px;
+                width: 40px;
+                height: 40px;
                 fill: white;
+            }
+            
+            h1 {
+                color: #667eea;
+                font-weight: 700;
+                font-size: 2.5rem;
+                margin-bottom: 15px;
+            }
+            
+            .subtitle {
+                color: #6c757d;
+                font-size: 1.1rem;
+                margin-bottom: 40px;
+            }
+            
+            .price-box {
+                background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+                border-radius: 15px;
+                padding: 30px;
+                margin-bottom: 30px;
+            }
+            
+            .price {
+                font-size: 3rem;
+                font-weight: 700;
+                color: #764ba2;
+                margin-bottom: 10px;
+            }
+            
+            .price-description {
+                color: #6c757d;
+                font-size: 1rem;
+            }
+            
+            .btn-stripe {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                border: none;
+                padding: 18px 50px;
+                font-size: 1.3rem;
+                font-weight: 600;
+                border-radius: 50px;
+                color: white;
+                transition: transform 0.3s ease, box-shadow 0.3s ease;
+                width: 100%;
+                cursor: pointer;
+            }
+            
+            .btn-stripe:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+            }
+            
+            .features {
+                text-align: left;
+                margin: 30px 0;
+            }
+            
+            .feature-item {
+                display: flex;
+                align-items: center;
+                margin-bottom: 15px;
+                color: #495057;
+            }
+            
+            .feature-icon {
+                width: 24px;
+                height: 24px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin-right: 15px;
+                flex-shrink: 0;
+            }
+            
+            .feature-icon svg {
+                width: 14px;
+                height: 14px;
+                fill: white;
+            }
+            
+            .secure-badge {
+                display: inline-flex;
+                align-items: center;
+                background: #f8f9fa;
+                padding: 10px 20px;
+                border-radius: 50px;
+                color: #6c757d;
+                font-size: 0.9rem;
+                margin-top: 20px;
+            }
+            
+            .secure-badge svg {
+                width: 18px;
+                height: 18px;
+                margin-right: 8px;
+                fill: #28a745;
+            }
+
+            /* Estilos personalizados para el input de email */
+            .email-input-group {
+                margin-bottom: 30px;
+                text-align: left;
+            }
+
+            .email-input-group label {
+                display: block;
+                color: #495057;
+                font-weight: 600;
+                font-size: 1rem;
+                margin-bottom: 10px;
+            }
+
+            .email-input-group input {
+                width: 100%;
+                padding: 16px 20px;
+                font-size: 1.05rem;
+                border: 2px solid #e9ecef;
+                border-radius: 15px;
+                background: #f8f9fa;
+                color: #495057;
+                transition: all 0.3s ease;
+                outline: none;
+            }
+
+            .email-input-group input:focus {
+                border-color: #667eea;
+                background: white;
+                box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+            }
+
+            .email-input-group input::placeholder {
+                color: #adb5bd;
             }
         </style>
     </head>
 
     <body>
-        <main class="container-fluid">
-            <div class="form-container">
-                <div class="form-header">
-                    <div class="icon-box mx-auto">
+        <div class="payment-container">
+            <div class="icon-box">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.31-8.86c-1.77-.45-2.34-.94-2.34-1.67 0-.84.79-1.43 2.1-1.43 1.38 0 1.9.66 1.94 1.64h1.71c-.05-1.34-.87-2.57-2.49-2.97V5H10.9v1.69c-1.51.32-2.72 1.3-2.72 2.81 0 1.79 1.49 2.69 3.66 3.21 1.95.46 2.34 1.15 2.34 1.87 0 .53-.39 1.39-2.1 1.39-1.6 0-2.23-.72-2.32-1.64H8.04c.1 1.7 1.36 2.66 2.86 2.97V19h2.34v-1.67c1.52-.29 2.72-1.16 2.73-2.77-.01-2.2-1.9-2.96-3.66-3.42z"/>
+                </svg>
+            </div>
+            
+            <h1>PayRoll System</h1>
+            <p class="subtitle">Complete payment to access the payroll form</p>
+            
+            <div class="price-box">
+                <div class="price">$X.XX</div>
+                <div class="price-description">One-time payment</div>
+            </div>
+            
+            <div class="features">
+                <div class="feature-item">
+                    <div class="feature-icon">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.31-8.86c-1.77-.45-2.34-.94-2.34-1.67 0-.84.79-1.43 2.1-1.43 1.38 0 1.9.66 1.94 1.64h1.71c-.05-1.34-.87-2.57-2.49-2.97V5H10.9v1.69c-1.51.32-2.72 1.3-2.72 2.81 0 1.79 1.49 2.69 3.66 3.21 1.95.46 2.34 1.15 2.34 1.87 0 .53-.39 1.39-2.1 1.39-1.6 0-2.23-.72-2.32-1.64H8.04c.1 1.7 1.36 2.66 2.86 2.97V19h2.34v-1.67c1.52-.29 2.72-1.16 2.73-2.77-.01-2.2-1.9-2.96-3.66-3.42z"/>
+                            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
                         </svg>
                     </div>
-                    <h1>PayRoll System</h1>
-                    <p>Complete employee payroll information</p>
+                    <span>Secure payment processing</span>
                 </div>
-                
-                <form method="post">
-                    <div class="section-title">📊 Salary Information</div>
-                    <div class="row">
-                        <div class="mb-3 col-md-6">
-                            <label class="form-label">Anual</label>
-                            <input type="text" class="form-control" name="anual" id="anual" placeholder="Enter annual salary"/>
-                        </div>
-                        <div class="mb-3 col-md-6">
-                            <label class="form-label">Period</label>
-                            <select class="form-select" name="period" id="period">
-                                <option selected disabled>Select one</option>
-                                <option value=26>Bi-Weekly</option>
-                                <option value=52>Weelky</option>
-                            </select>
-                        </div>
+                <div class="feature-item">
+                    <div class="feature-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                        </svg>
                     </div>
-
-                    <div class="section-title">👤 Employee Information</div>
-                    <div class="row">
-                        <div class="mb-3 col-md-6">
-                            <label class="form-label">Name</label>
-                            <input type="text" class="form-control" name="name" id="name" placeholder="Enter first name"/>
-                        </div>
-                        <div class="mb-3 col-md-6">
-                            <label class="form-label">Last name</label>
-                            <input type="text" class="form-control" name="last_name" id="last_name" placeholder="Enter last name"/>
-                        </div>
-                        <div class="mb-3 col-md-6">
-                            <label class="form-label">Client address</label>
-                            <input type="text" class="form-control" name="client_address" id="client_address" placeholder="Enter street address"/>
-                        </div>
-                        <div class="mb-3 col-md-6">
-                            <label class="form-label">City and State</label>
-                            <input type="text" class="form-control" name="city_state" id="city_state" placeholder="Enter city and state"/>
-                        </div>
-                        <div class="mb-3 col-md-4">
-                            <label class="form-label">Phone</label>
-                            <input type="number" class="form-control" name="phone" id="phone" placeholder="(555) 555-5555"/>
-                        </div>
-                        <div class="mb-3 col-md-4">
-                            <label class="form-label">Last 4 SSN digits</label>
-                            <input type="number" class="form-control" name="ssn_digits" id="ssn_digits" placeholder="1234" maxlength="4"/>
-                        </div>
-                        <div class="mb-3 col-md-4">
-                            <label class="form-label">Number of dependents</label>
-                            <input type="number" class="form-control" name="dependents" id="dependents" placeholder="0"/>
-                        </div>
+                    <span>Instant access after payment</span>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                        </svg>
                     </div>
-
-                    <div class="section-title">🏢 Company Information</div>
-                    <div class="row">
-                        <div class="mb-3 col-md-6">
-                            <label class="form-label">Company</label>
-                            <input type="text" class="form-control" name="company" id="company" placeholder="Enter company name"/>
-                        </div>
-                        <div class="mb-3 col-md-6">
-                            <label class="form-label">address CO</label>
-                            <input type="text" class="form-control" name="address_co" id="address_co" placeholder="Enter company address"/>
-                        </div>
-                    </div>
-
-                    <div class="section-title">📅 Payment Period</div>
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Check ID</label>
-                            <input type="number" class="form-control" name="check_id" id="check_id" placeholder="Enter check number"/>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Start Date</label>
-                            <input class='form-control' type="date" name="start_period"/>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">End Date</label>
-                            <input class='form-control' type="date" name="end_period"/>
-                        </div>
-                    </div>
-
-                    <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-submit">
-                            Button
-                        </button>
-                    </div>
-                </form>
+                    <span>Professional payroll documentation</span>
+                </div>
             </div>
-        </main>
+
+            <form action="" method="POST">
+                {% csrf_token %}
+
+                <div class="email-input-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" name="email" id="email" placeholder="your.email@example.com" required />
+                </div>
+                <input type="hidden" name="session_id" value="{{ session_id }}">
+                
+                <button type="submit" class="btn-stripe">
+                    Proceed to Payment
+                </button>
+            </form>
+            
+            
+            <div class="secure-badge">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
+                </svg>
+                Secured by Stripe
+            </div>
+        </div>
 
         <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous"></script>
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.min.js" integrity="sha384-BBtl+eGJRgqQAUMxJ7pMwbEyER4l1g+O15P+16Ep7Q9Q+zqX6gSbd85u4mG4QzX+" crossorigin="anonymous"></script>

@@ -1,21 +1,35 @@
 """
 Payroll PDF Generator Views
 """
+
+# Standard library imports
 import io
 import math
 import os
 import subprocess
 import zipfile
 from datetime import datetime, timedelta
-from typing import Tuple, Dict
+from typing import Dict, Tuple
 
-from django.http import HttpResponse, HttpRequest
-from django.shortcuts import render
-from django.views.decorators.csrf import csrf_exempt
+# Third-party imports
+import stripe
 from docx import Document
 from docx.enum.table import WD_ALIGN_VERTICAL
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from docx.shared import Pt
+from django.conf import settings
+from django.http import HttpRequest, HttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+
+# Local application imports
+from .models import PaymentToken
+
+# Stripe configuration
+stripe.api_key = settings.STRIPE_SECRET_KEY
+
 
 
 # Constants
@@ -354,24 +368,154 @@ class PayrollDocumentGenerator:
 
 
 # Views
+
+def index(request):
+    """Main page with payment button - displays the checkout URL."""
+    if request.method == 'GET':
+        # Create Stripe checkout session
+        checkout_session = create_stripe_checkout_session('price_1SFd2HHakpVhxYcD4Yxu08xi')
+        
+        # Create token linked to Stripe session
+        payment_token = PaymentToken.objects.create(
+            stripe_session_id=checkout_session.id
+        )
+
+        return render(request, 'index.html', {
+            'checkout_url': checkout_session.url,
+            'session_id': checkout_session.id
+        })
+
+    elif request.method == 'POST':
+        client_email = request.POST.get('email')
+        session_id = request.POST.get('session_id')
+
+        if not session_id:
+            return redirect('index')
+
+        try:
+            payment_token = PaymentToken.objects.get(stripe_session_id=session_id)
+            payment_token.customer_email = client_email
+            payment_token.save()
+
+            checkout_session = stripe.checkout.Session.retrieve(session_id)
+            return redirect(checkout_session.url)
+
+        except PaymentToken.DoesNotExist:
+            return redirect('index')
+        except Exception as e:
+            return HttpResponse(f"Error: {str(e)}", status=500)
+
+    return HttpResponse("Invalid request method", status=405)
+
+
+def payment_success(request):
+    """View displayed when payment is successful."""
+    if request.method == 'GET':
+        return render(request, 'payments/success.html')
+
+    elif request.method == 'POST':
+        email = request.POST.get('email')
+
+        token = PaymentToken.objects.filter(
+            customer_email=email,
+        ).first()
+
+        if not token or not token.is_valid():
+            return redirect('index')
+
+        return redirect('payroll', token=token.token)
+
+
+def payment_cancel(request):
+    """View displayed when user cancels the payment."""
+    return render(request, 'payments/cancel.html')
+
+
 @csrf_exempt
-def index(request: HttpRequest) -> HttpResponse:
-    """Main view for payroll generation"""
+def payroll_view(request: HttpRequest, token: str) -> HttpResponse:
+    """Main view for payroll generation."""
     if request.method == 'POST':
         try:
             annual_salary = int(request.POST['anual'])
             pay_period = int(request.POST['period'])
-            
+
             # Calculate payroll
             payroll_data = PayrollCalculator.calculate(annual_salary, pay_period)
-            
+
             # Generate PDFs
             generator = PayrollDocumentGenerator(request.POST, payroll_data)
+
+            token = PaymentToken.objects.get(token=token)
+            token.mark_as_used()
+
             return generator.generate_multiple_pdfs()
-            
+
         except (ValueError, KeyError) as e:
             return HttpResponse(f"Invalid input data: {str(e)}", status=400)
         except RuntimeError as e:
             return HttpResponse(f"Error generating PDFs: {str(e)}", status=500)
-    
-    return render(request, 'index.html')
+    else:
+        get_object_or_404(PaymentToken, token=token)
+        return render(request, 'payroll_view.html')
+
+
+@csrf_exempt
+@require_POST
+def stripe_webhook(request):
+    """Webhook for receiving Stripe events."""
+    payload = request.body
+    sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
+        )
+    except ValueError:
+        return HttpResponse(status=400)
+    except stripe.error.SignatureVerificationError:
+        return HttpResponse(status=400)
+
+    # Handle successful checkout event
+    if event['type'] == 'checkout.session.completed':
+        session = event['data']['object']
+
+        try:
+            payment_token = PaymentToken.objects.get(
+                stripe_session_id=session['id']
+            )
+
+            if session['payment_status'] == 'paid':
+                payment_token.is_paid = True
+                payment_token.paid_at = timezone.now()
+                payment_token.stripe_payment_intent = session.get('payment_intent')
+
+                if session.get('customer_details', {}).get('email'):
+                    payment_token.customer_email = session['customer_details']['email']
+
+                payment_token.save()
+        except PaymentToken.DoesNotExist:
+            pass
+
+    return HttpResponse(status=200)
+
+
+# Utility functions
+
+def create_stripe_checkout_session(price_id):
+    """Create a Stripe checkout session."""
+    try:
+        checkout_session = stripe.checkout.Session.create(
+            line_items=[
+                {
+                    'price': price_id,
+                    'quantity': 1,
+                },
+            ],
+            mode='payment',
+            success_url=f"{settings.DOMAIN}/payment/success/",
+            cancel_url=f"{settings.DOMAIN}/payment/error/",
+            automatic_tax={'enabled': True}
+        )
+        return checkout_session
+    except Exception as e:
+        raise Exception(f"Unexpected error: {str(e)}")
