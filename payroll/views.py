@@ -368,12 +368,13 @@ class PayrollDocumentGenerator:
 
 
 # Views
+PRODUCT_ID = settings.PRODUCT_ID
 
 def index(request):
     """Main page with payment button - displays the checkout URL."""
     if request.method == 'GET':
         # Create Stripe checkout session
-        checkout_session = create_stripe_checkout_session('price_1SFd2HHakpVhxYcD4Yxu08xi')
+        checkout_session = create_stripe_checkout_session(PRODUCT_ID)
         
         # Create token linked to Stripe session
         payment_token = PaymentToken.objects.create(
